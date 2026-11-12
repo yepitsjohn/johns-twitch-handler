@@ -517,6 +517,7 @@ body[data-user-mode="simple"]:not(.simple-details-open) .recommended-layout > .p
 .ad-countdown.active strong { color: var(--amber); }
 .ad-controls { display: grid; grid-template-columns: minmax(105px, .8fr) 1.2fr 1fr; gap: 8px; margin-top: 12px; }
 .ad-controls button, .ad-controls select { min-width: 0; font-size: 10px; }
+#ad-message:empty { display: none; }
 /* Performance gauges, history graph, diagnosis, and ranked process drains. */
 .gauges { display: grid; grid-template-columns: repeat(2, 1fr); gap: 16px 18px; }
 .gauge-top { display: flex; justify-content: space-between; align-items: center; margin-bottom: 7px; }

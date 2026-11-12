@@ -628,8 +628,9 @@
             <button id="start-twitch-ad" class="primary">Run Twitch ad</button>
             <button id="start-ad-timer" class="secondary">Timer only</button>
           </div>
-          <div id="ad-message" class="performance-warning">Start messages and completion messages are posted by John’s Twitch Handler in chat.</div>
-          <p class="helper">Reconnect Twitch once to approve <code>channel:read:ads</code> and <code>channel:edit:commercial</code>. Timer only does not start an ad, but still announces and records the break.</p>
+          <label class="inline-toggle"><input id="ad-announce-in-chat" type="checkbox" disabled> Announce ad breaks in Twitch chat</label>
+          <div id="ad-message" class="performance-warning" role="status"></div>
+          <p class="helper">Reconnect Twitch once to approve <code>channel:read:ads</code> and <code>channel:edit:commercial</code>. Timer only counts down and records the break.</p>
         </section>
 
         <!-- Spotify audio remains in the Spotify app; this card controls metadata and its queue. -->

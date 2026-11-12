@@ -1007,6 +1007,15 @@ app.MapPost("/api/alerts/test", () =>
     return Results.Ok(twitchEvents.GetSnapshot());
 });
 app.MapGet("/api/ads/status", () => Results.Ok(adBreaks.GetSnapshot()));
+app.MapPut("/api/ads/options", (AdBreakOptions options) =>
+{
+    try { return Results.Ok(adBreaks.SetOptions(options)); }
+    catch (Exception exception) when (exception is IOException or UnauthorizedAccessException)
+    {
+        app.Logger.LogWarning(exception, "Could not save ad break options.");
+        return Results.Json(new { error = "Could not save the ad break announcement setting." }, statusCode: 500);
+    }
+});
 app.MapPost("/api/ads/start", async (AdBreakStartRequest request, CancellationToken cancellationToken) =>
 {
     try

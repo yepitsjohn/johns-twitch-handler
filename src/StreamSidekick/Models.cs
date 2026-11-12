@@ -308,7 +308,8 @@ public sealed record AdBreakSnapshot(
     int DurationSeconds,
     int RemainingSeconds,
     string Source,
-    string Status);
+    string Status,
+    bool AnnounceInChat);
 public sealed record TwitchCommercialResult(int LengthSeconds, string Message, int RetryAfterSeconds);
 public sealed record TwitchAdBreak(
     DateTimeOffset StartedAt,

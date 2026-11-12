@@ -1,16 +1,24 @@
+using System.Text.Json;
+using System.Text.Json.Serialization;
+
 namespace StreamSidekick.Services;
 
+public sealed record AdBreakOptions([property: JsonRequired] bool AnnounceInChat);
+
 /// <summary>
-/// Tracks one ad break, announces its boundaries in Twitch chat, and writes both timestamps to the
+/// Tracks one ad break, optionally announces it in Twitch chat, and writes both timestamps to the
 /// active session. A generation number prevents an older countdown from ending a newer break.
 /// </summary>
-public sealed class AdBreakService(
-    TwitchClient twitch,
-    TwitchEventSubService twitchEvents,
-    SessionStore sessions,
-    ILogger<AdBreakService> logger)
+public sealed class AdBreakService
 {
+    private static readonly JsonSerializerOptions JsonOptions = new(JsonSerializerDefaults.Web);
+    private readonly TwitchClient twitch;
+    private readonly TwitchEventSubService twitchEvents;
+    private readonly SessionStore sessions;
+    private readonly ILogger<AdBreakService> logger;
     private readonly object _sync = new();
+    private readonly string _optionsPath;
+    private AdBreakOptions _options = new(false);
     private DateTimeOffset? _startedAt;
     private DateTimeOffset? _endsAt;
     private int _durationSeconds;
@@ -18,22 +26,48 @@ public sealed class AdBreakService(
     private string _status = "No ad break is running.";
     private long _generation;
 
+    public AdBreakService(
+        TwitchClient twitch,
+        TwitchEventSubService twitchEvents,
+        SessionStore sessions,
+        IConfiguration configuration,
+        ILogger<AdBreakService> logger)
+    {
+        this.twitch = twitch;
+        this.twitchEvents = twitchEvents;
+        this.sessions = sessions;
+        this.logger = logger;
+        var directory = configuration["PreferencesDirectory"] ?? Path.Combine(
+            Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData), "StreamSidekick");
+        _optionsPath = Path.Combine(directory, "ad-break-options.json");
+        try
+        {
+            if (File.Exists(_optionsPath))
+                _options = JsonSerializer.Deserialize<AdBreakOptions>(File.ReadAllText(_optionsPath), JsonOptions)
+                    ?? throw new JsonException("The ad break options were empty.");
+        }
+        catch (Exception exception) when (exception is IOException or UnauthorizedAccessException or JsonException)
+        {
+            logger.LogWarning(exception, "Could not load ad break options. Chat announcements will stay off.");
+        }
+    }
+
     public AdBreakSnapshot GetSnapshot()
+    {
+        lock (_sync) return GetSnapshotUnsafe();
+    }
+
+    public AdBreakSnapshot SetOptions(AdBreakOptions options)
     {
         lock (_sync)
         {
-            var now = DateTimeOffset.UtcNow;
-            var end = _endsAt;
-            var active = end.HasValue && end.Value > now;
-            var remaining = active ? Math.Max(0, (int)Math.Ceiling((end!.Value - now).TotalSeconds)) : 0;
-            return new AdBreakSnapshot(
-                active,
-                _startedAt,
-                _endsAt,
-                _durationSeconds,
-                remaining,
-                _source,
-                active ? _status : "No ad break is running.");
+            if (_options == options) return GetSnapshotUnsafe();
+            Directory.CreateDirectory(Path.GetDirectoryName(_optionsPath)!);
+            var temporary = _optionsPath + ".tmp";
+            File.WriteAllText(temporary, JsonSerializer.Serialize(options, JsonOptions));
+            File.Move(temporary, _optionsPath, overwrite: true);
+            _options = options;
+            return GetSnapshotUnsafe();
         }
     }
 
@@ -88,7 +122,8 @@ public sealed class AdBreakService(
             _durationSeconds,
             active ? Math.Max(0, (int)Math.Ceiling((end!.Value - now).TotalSeconds)) : 0,
             _source,
-            active ? _status : "No ad break is running.");
+            active ? _status : "No ad break is running.",
+            _options.AnnounceInChat);
     }
 
     private async Task CompleteAfterDelayAsync(long generation, DateTimeOffset expectedEnd)
@@ -116,6 +151,11 @@ public sealed class AdBreakService(
 
     private async Task TrySendChatAsync(string message, CancellationToken cancellationToken = default)
     {
+        lock (_sync)
+        {
+            if (!_options.AnnounceInChat) return;
+        }
+
         try
         {
             await twitch.SendChatMessageAsync(message, cancellationToken);

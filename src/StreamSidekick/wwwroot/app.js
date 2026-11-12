@@ -35,6 +35,7 @@ const state = {
   tikFinityEnabled: false,
   manualPreflightItems: [],
   ads: null,
+  adOptionsSaving: false,
   chatChime: null,
   twitchChatFeed: null,
   twitchChatBusy: false,
@@ -690,10 +691,14 @@ function renderTikFinity() {
 // --- Twitch ad timing ------------------------------------------------------------------------
 
 async function refreshAds() {
+  const previous = state.ads;
   try {
-    state.ads = await api("/api/ads/status");
+    const ads = await api("/api/ads/status");
+    if (state.ads !== previous) return;
+    state.ads = ads;
     renderAds();
   } catch (error) {
+    if (state.ads !== previous) return;
     $("#ads-state").textContent = "Unavailable";
     $("#ad-message").textContent = error.message;
   }
@@ -701,6 +706,9 @@ async function refreshAds() {
 
 function renderAds() {
   const ads = state.ads;
+  const announceInChat = $("#ad-announce-in-chat");
+  announceInChat.disabled = state.adOptionsSaving || typeof ads?.announceInChat !== "boolean";
+  if (!state.adOptionsSaving) announceInChat.checked = ads?.announceInChat === true;
   const countdown = $("#ad-countdown");
   const remaining = ads?.active && ads.endsAt
     ? Math.max(0, Math.ceil((new Date(ads.endsAt).valueOf() - Date.now()) / 1000))
@@ -712,6 +720,26 @@ function renderAds() {
     ? `${ads.source} · ${ads.durationSeconds} seconds total`
     : ads?.status || "No ad break is running.";
   $("#ads-state").textContent = active ? "Running" : "Idle";
+}
+
+async function saveAdOptions(announceInChat) {
+  state.adOptionsSaving = true;
+  renderAds();
+  try {
+    state.ads = await api("/api/ads/options", {
+      method: "PUT",
+      body: JSON.stringify({ announceInChat })
+    });
+    $("#ad-message").textContent = announceInChat
+      ? "Ad break start and end messages are enabled."
+      : "Ad break announcements are off.";
+  } catch (error) {
+    $("#ad-message").textContent = error.message;
+    toast(error.message, true);
+  } finally {
+    state.adOptionsSaving = false;
+    renderAds();
+  }
 }
 
 async function startAdBreak(startOnTwitch) {
@@ -726,8 +754,8 @@ async function startAdBreak(startOnTwitch) {
     state.ads = result.countdown || result;
     renderAds();
     $("#ad-message").textContent = startOnTwitch
-      ? result.message || "Twitch accepted the ad and chat was notified."
-      : "Manual timer started and chat was notified. No Twitch ad was requested.";
+      ? result.message || "Twitch accepted the ad."
+      : "Manual timer started.";
     await refreshReport(false);
     toast(startOnTwitch ? "Twitch ad break started." : "Ad timer started.");
   } catch (error) {
@@ -4140,6 +4168,7 @@ $("#log-tangia-interaction").addEventListener("click", async () => {
 });
 $("#start-twitch-ad").addEventListener("click", () => startAdBreak(true));
 $("#start-ad-timer").addEventListener("click", () => startAdBreak(false));
+$("#ad-announce-in-chat").addEventListener("change", event => saveAdOptions(event.target.checked));
 $("#launch-nvidia").addEventListener("click", async () => {
   try {
     await api("/api/nvidia-broadcast/launch", { method: "POST" });
