@@ -1016,6 +1016,19 @@ app.MapPut("/api/ads/options", (AdBreakOptions options) =>
         return Results.Json(new { error = "Could not save the ad break announcement setting." }, statusCode: 500);
     }
 });
+app.MapPut("/api/ads/messages", (AdBreakMessages messages) =>
+{
+    try { return Results.Ok(adBreaks.SetMessages(messages)); }
+    catch (ArgumentException exception)
+    {
+        return Results.BadRequest(new { error = exception.Message });
+    }
+    catch (Exception exception) when (exception is IOException or UnauthorizedAccessException)
+    {
+        app.Logger.LogWarning(exception, "Could not save ad break messages.");
+        return Results.Json(new { error = "Could not save the ad break messages." }, statusCode: 500);
+    }
+});
 app.MapPost("/api/ads/start", async (AdBreakStartRequest request, CancellationToken cancellationToken) =>
 {
     try

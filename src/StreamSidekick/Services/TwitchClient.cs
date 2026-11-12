@@ -28,6 +28,7 @@ internal sealed record TwitchTokenDetails(
 /// </summary>
 public sealed class TwitchClient
 {
+    internal const int MaxChatMessageLength = 500;
     private const string DeviceGrantType = "urn:ietf:params:oauth:grant-type:device_code";
     private static readonly string[] RequiredScopes =
     [
@@ -336,7 +337,8 @@ public sealed class TwitchClient
     {
         var configuration = await GetValidConfigurationAsync(cancellationToken);
         var trimmed = message.Trim();
-        if (trimmed.Length is < 1 or > 500) throw new ArgumentException("Twitch chat messages must be 1–500 characters.");
+        if (trimmed.Length is < 1 or > MaxChatMessageLength)
+            throw new ArgumentException($"Twitch chat messages must be 1–{MaxChatMessageLength} characters.");
 
         using var client = httpClientFactory.CreateClient();
         client.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", configuration.AccessToken);

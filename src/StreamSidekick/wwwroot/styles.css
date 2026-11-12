@@ -517,6 +517,7 @@ body[data-user-mode="simple"]:not(.simple-details-open) .recommended-layout > .p
 .ad-countdown.active strong { color: var(--amber); }
 .ad-controls { display: grid; grid-template-columns: minmax(105px, .8fr) 1.2fr 1fr; gap: 8px; margin-top: 12px; }
 .ad-controls button, .ad-controls select { min-width: 0; font-size: 10px; }
+.ad-chat-controls { display: flex; flex-wrap: wrap; align-items: center; gap: 0 8px; }
 #ad-message:empty { display: none; }
 /* Performance gauges, history graph, diagnosis, and ranked process drains. */
 .gauges { display: grid; grid-template-columns: repeat(2, 1fr); gap: 16px 18px; }
@@ -802,6 +803,8 @@ legend { padding: 0 8px; color: #cbd1dc; font-weight: 800; font-size: 12px; }
 fieldset label { display: grid; gap: 5px; color: var(--muted); font-size: 11px; }
 fieldset small { color: var(--muted); line-height: 1.5; }
 .message { min-height: 18px; color: var(--amber); font-size: 12px; }
+#ad-messages-form label { display: grid; gap: 5px; margin-top: 12px; color: var(--muted); font-size: 12px; }
+#ad-messages-error:empty { display: none; }
 .connection-diagnostics { margin-top: 8px; padding: 10px 12px; border: 1px solid var(--line); border-radius: 10px; color: var(--muted); font-size: 11px; }
 .connection-diagnostics summary { cursor: pointer; color: #cbd1dc; font-weight: 700; }
 .connection-diagnostics-list { display: grid; gap: 7px; margin-top: 10px; }

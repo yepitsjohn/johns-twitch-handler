@@ -628,7 +628,10 @@
             <button id="start-twitch-ad" class="primary">Run Twitch ad</button>
             <button id="start-ad-timer" class="secondary">Timer only</button>
           </div>
-          <label class="inline-toggle"><input id="ad-announce-in-chat" type="checkbox" disabled> Announce ad breaks in Twitch chat</label>
+          <div class="ad-chat-controls">
+            <label class="inline-toggle"><input id="ad-announce-in-chat" type="checkbox" disabled> Announce ad breaks in Twitch chat</label>
+            <button id="edit-ad-messages" type="button" class="text-button" aria-haspopup="dialog" disabled>Customize messages</button>
+          </div>
           <div id="ad-message" class="performance-warning" role="status"></div>
           <p class="helper">Reconnect Twitch once to approve <code>channel:read:ads</code> and <code>channel:edit:commercial</code>. Timer only counts down and records the break.</p>
         </section>
@@ -889,6 +892,20 @@
       </main>
     </div>
   </div>
+
+  <dialog id="ad-messages-dialog" aria-labelledby="ad-messages-title" aria-describedby="ad-messages-help">
+    <form id="ad-messages-form" method="dialog" class="settings-card compact-dialog">
+      <h3 id="ad-messages-title">Ad break chat messages</h3>
+      <p id="ad-messages-help" class="helper">Use <code>{seconds}</code> to insert the break duration in seconds. Clear a field to restore its default.</p>
+      <label>Start message <input id="ad-start-message" type="text" maxlength="500" autofocus></label>
+      <label>End message <input id="ad-end-message" type="text" maxlength="500"></label>
+      <p id="ad-messages-error" class="message" role="alert"></p>
+      <div class="dialog-actions">
+        <button id="cancel-ad-messages" type="button" class="secondary">Cancel</button>
+        <button id="save-ad-messages" type="submit" class="primary">Save messages</button>
+      </div>
+    </form>
+  </dialog>
 
   <dialog id="preflight-visibility-dialog">
     <form method="dialog" class="settings-card compact-dialog">

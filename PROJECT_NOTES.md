@@ -125,7 +125,7 @@ opens After stream.
 - Stream markers, OBS Replay Buffer saves, Twitch clip creation, and StreamLadder handoff.
 - Persistent FPS and RPG game profiles, with kill/death session markers and counters in the FPS profile.
 - Optional Wardogs post-stream results for community servers using a locally saved SteamID64/server identifier and the no-key WARDOGS Tracker API. A baseline/final snapshot delta is stored with the stream report; official-server and exact event-timestamp support are not implied.
-- Ad-break timer with optional Twitch chat announcements at the start and end, off by default.
+- Ad-break timer with customizable Twitch chat announcements at the start and end, off by default.
 - Tangia OBS Browser Source controls, volume control, mute, reload, and Boss Focus support.
 - Chat command manager for commands such as `!discord`, `!spec`, and `!build`.
 - Safe action and schedule manager. It does not execute arbitrary scripts or programs.

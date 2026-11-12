@@ -708,6 +708,7 @@ function renderAds() {
   const ads = state.ads;
   const announceInChat = $("#ad-announce-in-chat");
   announceInChat.disabled = state.adOptionsSaving || typeof ads?.announceInChat !== "boolean";
+  $("#edit-ad-messages").disabled = state.adOptionsSaving || typeof ads?.startMessage !== "string";
   if (!state.adOptionsSaving) announceInChat.checked = ads?.announceInChat === true;
   const countdown = $("#ad-countdown");
   const remaining = ads?.active && ads.endsAt
@@ -739,6 +740,41 @@ async function saveAdOptions(announceInChat) {
   } finally {
     state.adOptionsSaving = false;
     renderAds();
+  }
+}
+
+function editAdMessages() {
+  $("#ad-start-message").value = state.ads.startMessage;
+  $("#ad-end-message").value = state.ads.endMessage;
+  $("#ad-messages-error").textContent = "";
+  $("#ad-messages-dialog").showModal();
+}
+
+async function saveAdMessages(event) {
+  event.preventDefault();
+  if (state.adOptionsSaving) return;
+  const start = $("#ad-start-message");
+  const end = $("#ad-end-message");
+  const errorMessage = $("#ad-messages-error");
+  const saveButton = $("#save-ad-messages");
+  state.adOptionsSaving = true;
+  saveButton.disabled = start.readOnly = end.readOnly = true;
+  errorMessage.textContent = "";
+  renderAds();
+  try {
+    state.ads = await api("/api/ads/messages", {
+      method: "PUT",
+      body: JSON.stringify({ startMessage: start.value, endMessage: end.value })
+    });
+    $("#ad-messages-dialog").close();
+    toast("Ad break messages saved.");
+  } catch (error) {
+    errorMessage.textContent = error.message;
+  } finally {
+    state.adOptionsSaving = false;
+    saveButton.disabled = start.readOnly = end.readOnly = false;
+    renderAds();
+    if (!$("#ad-messages-dialog").open) $("#edit-ad-messages").focus();
   }
 }
 
@@ -4169,6 +4205,9 @@ $("#log-tangia-interaction").addEventListener("click", async () => {
 $("#start-twitch-ad").addEventListener("click", () => startAdBreak(true));
 $("#start-ad-timer").addEventListener("click", () => startAdBreak(false));
 $("#ad-announce-in-chat").addEventListener("change", event => saveAdOptions(event.target.checked));
+$("#edit-ad-messages").addEventListener("click", editAdMessages);
+$("#ad-messages-form").addEventListener("submit", saveAdMessages);
+$("#cancel-ad-messages").addEventListener("click", () => $("#ad-messages-dialog").close());
 $("#launch-nvidia").addEventListener("click", async () => {
   try {
     await api("/api/nvidia-broadcast/launch", { method: "POST" });
