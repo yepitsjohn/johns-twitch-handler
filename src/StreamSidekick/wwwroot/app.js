@@ -14,6 +14,7 @@ const state = {
   optimizerBusy: false,
   autoEndingSession: false,
   sessionActive: false,
+  sessionRevision: 0,
   wardogs: null,
   channelName: localStorage.getItem("streamsidekick.channel") || "",
   wow: null,
@@ -358,9 +359,11 @@ function updateDashboardBorder() {
 
 async function refreshPreflight() {
   try {
+    const sessionRevision = state.sessionRevision;
+    // Reads after a session change must not share an older in-flight preflight response.
+    state.preflight = await api(`/api/preflight?spotifyEnabled=${state.spotifyEnabled}&tangiaEnabled=${state.tangiaEnabled}&streamElementsEnabled=${state.streamElementsEnabled}&streamElementsConfirmed=${state.streamElementsConfirmed}&tikFinityEnabled=${state.tikFinityEnabled}&sessionRevision=${sessionRevision}`);
     const wasTracking = state.sessionActive;
-    state.preflight = await api(`/api/preflight?spotifyEnabled=${state.spotifyEnabled}&tangiaEnabled=${state.tangiaEnabled}&streamElementsEnabled=${state.streamElementsEnabled}&streamElementsConfirmed=${state.streamElementsConfirmed}&tikFinityEnabled=${state.tikFinityEnabled}`);
-    state.sessionActive = state.preflight.sessionActive;
+    if (sessionRevision === state.sessionRevision) setSessionActive(state.preflight.sessionActive);
     if (!state.musicOverlayBusy && typeof state.preflight.musicOverlayVisible === "boolean") {
       state.musicOverlayVisible = state.preflight.musicOverlayVisible;
       renderMusicOverlayVisibility();
@@ -803,6 +806,26 @@ async function startAdBreak(startOnTwitch) {
 }
 
 // --- Session tracking and reports -------------------------------------------------------------
+
+function warnBeforeClosingSession(event) {
+  event.preventDefault();
+  event.returnValue = true;
+  // The browser supplies the dialog text. Give users who stay a way to finish from any page.
+  $("#session-close-warning").hidden = false;
+}
+
+function setSessionActive(active) {
+  const tracking = active === true;
+  if (state.sessionActive === tracking) return;
+  state.sessionActive = tracking;
+  state.sessionRevision += 1;
+  if (tracking) {
+    window.addEventListener("beforeunload", warnBeforeClosingSession);
+  } else {
+    window.removeEventListener("beforeunload", warnBeforeClosingSession);
+    $("#session-close-warning").hidden = true;
+  }
+}
 
 function renderSession() {
   const active = state.sessionActive;
@@ -3519,7 +3542,7 @@ async function toggleSession() {
         method: "POST",
         body: JSON.stringify({ title: $("#stream-title").value.trim() })
       });
-      state.sessionActive = true;
+      setSessionActive(true);
       state.report = { id: session.id, title: session.title, startedAt: session.startedAt, durationMinutes: 0, highlightCount: 0, sceneChangeCount: 0, markers: [], wardogs: session.wardogs || null };
       // Starting a show moves the interface from setup tools to the live control workspace.
       setActiveWorkspace("during", { persist: true });
@@ -3535,7 +3558,7 @@ async function endTrackedSession(automatic) {
   state.autoEndingSession = true;
   try {
     const report = await api("/api/session/end", { method: "POST" });
-    state.sessionActive = false;
+    setSessionActive(false);
     // Manual reminders are reusable definitions, but completion belongs to one show. Reset them
     // after the report is created so the next stream cannot inherit stale green checkmarks.
     state.manualPreflightItems = state.manualPreflightItems.map(item => ({ ...item, checked: false }));
@@ -3965,6 +3988,7 @@ $$("[data-scroll-panel]").forEach(button => button.addEventListener("click", () 
   showPanel(panel, "pre");
 }));
 $("#session-toggle").addEventListener("click", toggleSession);
+$("#end-session-before-close").addEventListener("click", () => endTrackedSession(false));
 $("#add-marker").addEventListener("click", () => addMarker());
 $("#create-social-clip").addEventListener("click", () => addMarker(null, "clip", { createTwitchClip: true }));
 $("#marker-title").addEventListener("keydown", event => { if (event.key === "Enter") addMarker(); });

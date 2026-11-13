@@ -1139,6 +1139,7 @@ dialog::backdrop { background: rgba(0,0,0,.74); backdrop-filter: blur(2px); }
 .startup-notice p { margin:4px 0 0; color:var(--muted); font-size:12px; overflow-wrap:anywhere; }
 .startup-notice a { font-size:12px; color:var(--purple); white-space:nowrap; }
 .startup-notice.warning { border-color:var(--amber); }
+#session-close-warning { position: sticky; top: 8px; z-index: 30; }
 .optional-setup { margin-top:16px; }
 #settings-dialog fieldset { min-width:0; }
 #settings-dialog .settings-button-row { flex-wrap:wrap; }

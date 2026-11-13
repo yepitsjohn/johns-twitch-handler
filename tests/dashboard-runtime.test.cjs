@@ -145,6 +145,39 @@ test('missing Twitch does not force setup when OBS is connected; active streams 
   const live = startupFixture({ connected: false, sessionActive: true }); await live.boot(); assert.equal(live.opened(), 0);
 });
 
+test('active session prompts on close and releases its listener after each session', () => {
+  const state = { sessionActive: false, sessionRevision: 0 };
+  const warning = { hidden: true };
+  const listeners = new Set();
+  let registrations = 0;
+  const context = vm.createContext({ state, $: () => warning, window: {
+    addEventListener(type, handler) {
+      assert.equal(type, 'beforeunload');
+      registrations++;
+      listeners.add(handler);
+    },
+    removeEventListener(type, handler) {
+      assert.equal(type, 'beforeunload');
+      assert.equal(listeners.delete(handler), true);
+    }
+  } });
+  vm.runInContext(app.slice(app.indexOf('function warnBeforeClosingSession('), app.indexOf('function renderSession(')), context);
+  assert.equal(listeners.size, 0);
+  for (let cycle = 0; cycle < 100; cycle++) {
+    context.setSessionActive(true);
+    context.setSessionActive(true);
+    assert.equal(listeners.size, 1);
+    const event = { preventDefault() { this.defaultPrevented = true; } };
+    [...listeners][0](event);
+    assert.equal(event.defaultPrevented, true);
+    assert.equal(warning.hidden, false);
+    context.setSessionActive(false);
+    assert.equal(listeners.size, 0);
+    assert.equal(warning.hidden, true);
+  }
+  assert.equal(registrations, 100);
+});
+
 test('failed health reads clear stale data and explain unavailability instead of showing healthy', async () => {
   const state = { system: { current: { cpuPercent: 2 } }, internet: { status: 'healthy' } };
   const elements = new Map();
